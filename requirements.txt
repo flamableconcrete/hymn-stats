@@ -1,4 +1,5 @@
 gspread
+gunicorn
 oauth2client
 psycopg2
 sqlalchemy
