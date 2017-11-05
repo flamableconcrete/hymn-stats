@@ -1,8 +1,11 @@
 import os
+import json
 from pathlib import Path
 
 from oauth2client.service_account import ServiceAccountCredentials
 from sqlalchemy import create_engine
+
+from models import DeclarativeBase
 
 
 def get_credentials():
@@ -32,6 +35,17 @@ def db_connect():
     Performs database connection using database settings from settings.py.
     Returns sqlalchemy engine instance
     """
-    db_url = os.environ['DATABASE_URL']
+    db_creds = 'db_creds.json'
+    if Path(db_creds).is_file():
+        with open(db_creds) as data_file:
+            data = json.load(data_file)
+        db_url = data['db_url']
+    else:
+        db_url = os.environ['DATABASE_URL']
     # print('INFO: Connecting to DB:', db_url)
     return create_engine(db_url)
+
+
+def create_tables(engine):
+    """Creates tables in database"""
+    DeclarativeBase.metadata.create_all(engine)
