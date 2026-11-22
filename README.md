@@ -4,6 +4,8 @@ A mobile hymn log and public history explorer. Record all meeting types, revise 
 
 The site runs on GitHub Pages with Firebase Authentication and Firestore on Spark. Public viewers read an explicit static export, not the private database. Keep paid billing disabled.
 
+The active project is `flamableconcrete-hymn-stats`, with Standard Firestore in `us-central1`, Google sign-in, and the owner account registered as admin. Billing is disabled. The initial live import contains 654 reports: 653 finished records and one incomplete draft. The private automation repository is `flamableconcrete/hymn-stats-automation`. Spreadsheet automation and public rebuilding remain disabled until the specific spreadsheet sharing and GitHub publishing credentials are configured.
+
 ## Run locally
 
 Use Node 24 LTS (the CI target):
@@ -35,6 +37,8 @@ The production service worker caches the application shell, catalog, and public 
 7. Put the complete **public** configuration JSON in the public repository's `PUBLIC_APP_CONFIG` Actions variable. Include the private automation repository's owner, name, workflow filename, and default branch. Never put service-account keys, OAuth client secrets, or personal access tokens in this variable or the public site.
 
 The rebuild button asks GitHub for `repo` access, which is broader than a single workflow. Only site admins see the button, and GitHub independently enforces the account's repository access. The personal token stays in memory, is cleared on sign-out/page exit, and may require reauthorization. The workflow link is always available as a fallback. A dispatched run is shown as requested/running, not completed until the workflow succeeds.
+
+Set `github.rebuildEnabled` to `false` in both repositories' public configuration while the publishing token or GitHub provider is missing. Set it to `true` only after a manual workflow has successfully deployed Pages and Firebase's GitHub provider is enabled. The button remains disabled during setup, while the workflow link remains available.
 
 ## Data and privacy
 
@@ -77,6 +81,8 @@ Apply after inspecting the report:
 npm run import:sheets -- --apply
 ```
 
+For local setup, `FIREBASE_USE_CLI_LOGIN=1` lets cloud administration scripts use the existing Firebase CLI login, without copying its refresh credential. This opt-in path depends on the pinned `firebase-tools` package. Leave it unset in Actions, which uses Workload Identity Federation. A private source snapshot can be applied with `--input var/source.json --apply` only after every source row already contains its stable ID; it never writes IDs back from a snapshot. Set the same `SOURCE_SPREADSHEET_ID` used for live imports so baseline identities match.
+
 The importer appends `Hymn Stats ID` **after the widest populated source row**, including unheaded groups. It validates source IDs before cloud writes. IDs survive sorting and corrections. Repeated unchanged imports produce no new reports or revisions. Source edits merge against the last imported baseline; conflicting website edits are retained for admin review. Disappearing rows raise an issue rather than deleting history. Admins resolve corrections in the website; a CLI alternative is `node scripts/resolve-import.js --id SOURCE_ID --choice website|spreadsheet`.
 
 The current source inventory has 654 records: 486 Sacrament and 168 Other Meetings. One no-song historical row is preserved as an incomplete draft. The public initial history contains the 653 identifiable music records. Other Meetings has records with 14, 11, and 8 music entries despite headers for only three groups. The importer reads them all. Public catalog metadata includes 341 English hymns, 268 Children's Songbook entries, and 90 newer hymns as of November 22, 2026. Sources are recorded in `data/catalog-additions.json`; lyrics and scores are not included.
@@ -103,7 +109,11 @@ Create a **private** automation repository and install `automation/publish.yml` 
 
 Use `google-github-actions/auth` with Workload Identity Federation so no long-lived Google key is needed in the repository. The identity needs Firestore data access, Firebase Authentication read access for account backups, and access to the specific spreadsheet when import is enabled. Do not give it project owner access. Configure the destination-scoped `SOURCE_PUBLISH_TOKEN` Actions secret with source contents and Actions access for publishing the prepared branch and dispatching/watching the public deployment workflow. The automatic `GITHUB_TOKEN` cannot push to another repository.
 
+`scripts/setup-automation-identity.js` provisions the service account and GitHub federation using a local Firebase CLI login. Supply `FIREBASE_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GITHUB_AUTOMATION_REPOSITORY`, and the verified numeric `GITHUB_AUTOMATION_REPOSITORY_ID`/`GITHUB_OWNER_ID`. Trust is restricted to that repository's `main` branch and `.github/workflows/publish.yml`. It creates no service-account keys. The service account receives only Datastore User, Firebase Authentication Viewer, and Service Usage Consumer roles. Sharing the specific source workbook with this identity is a separate step before enabling imports.
+
 Daily/manual automation imports enabled sources, exports all private data/accounts, commits backups **only to the private repository**, generates an allowlisted public snapshot, builds the site, publishes prepared output, and waits for the public Pages deployment. Scheduled runs are best effort; the website displays the last successful snapshot time. Admins can run the private workflow manually or use the in-app rebuild button.
+
+Without `SOURCE_PUBLISH_TOKEN`, the workflow completes the private backup and explicitly reports that public publishing is awaiting setup. This allows recovery backups to run independently of publishing credentials. Keep `IMPORT_ENABLED=false` until spreadsheet access has been granted and verified.
 
 Keep GitHub paid overages disabled. If a payment method already exists, configure a zero-overage spending limit with usage stopping enabled. Monitor included Actions usage and private backup repository growth. Exceeding free service limits must interrupt work rather than enable paid billing.
 

@@ -96,6 +96,7 @@ export class Cloud {
   }
   workflowUrl() { const g = this.config.github; return g?.owner && g?.repo ? `https://github.com/${encodeURIComponent(g.owner)}/${encodeURIComponent(g.repo)}/actions/workflows/${encodeURIComponent(g.workflow || 'publish.yml')}` : ''; }
   async rebuild() {
+    if (this.config.github?.rebuildEnabled === false) throw new Error('Public rebuilding is awaiting administrator setup. Open the GitHub workflow for private backups.');
     if (!this.githubToken) await this.connectGitHub();
     const g = this.config.github;
     if (!g?.owner || !g?.repo) throw new Error('The automation repository has not been configured.');

@@ -32,8 +32,8 @@ const normalized = sheets.map(s => ({ ...s, prepared: ensureSourceIds(s.values, 
 const allIds = normalized.flatMap(s => s.prepared.values.slice(1).map(r => r[s.prepared.idColumn]).filter(Boolean));
 if (new Set(allIds).size !== allIds.length) throw new Error('Duplicate source IDs across tabs. No import was applied.');
 if (!dryRun) {
-  if (arg('input')) throw new Error('Applying a private snapshot cannot assign stable source IDs. Apply directly from Sheets instead.');
-  for (const s of normalized) {
+  if (arg('input') && normalized.some(s => s.prepared.updates.length)) throw new Error('A snapshot can be applied only when every source row already has a verified stable ID. Assign IDs in the live source first.');
+  for (const s of arg('input') ? [] : normalized) {
     if (s.prepared.idColumn >= s.gridProperties.columnCount) await api(':batchUpdate', { method: 'POST', body: JSON.stringify({ requests: [{ appendDimension: { sheetId: s.sheetId, dimension: 'COLUMNS', length: s.prepared.idColumn - s.gridProperties.columnCount + 1 } }] }) });
     if (s.prepared.updates.length) await api('/values:batchUpdate', { method: 'POST', body: JSON.stringify({ valueInputOption: 'RAW', data: s.prepared.updates.map(u => ({ range: `'${s.title.replaceAll("'", "''")}'!${columnLetter(u.column)}${u.row}`, values: [[u.value]] })) }) });
   }

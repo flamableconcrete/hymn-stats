@@ -1,4 +1,33 @@
 {
-  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" },
-  "emulators": { "firestore": { "host": "127.0.0.1", "port": 8080 }, "auth": { "host": "127.0.0.1", "port": 9099 }, "ui": { "enabled": false }, "singleProjectMode": true }
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8080
+    },
+    "auth": {
+      "host": "127.0.0.1",
+      "port": 9099
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
+  },
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Hymn Stats",
+        "supportEmail": "flamableconcrete@gmail.com",
+        "authorizedRedirectUris": [
+          "https://flamableconcrete-hymn-stats.firebaseapp.com/__/auth/handler",
+          "https://flamableconcrete.github.io",
+          "http://localhost"
+        ]
+      }
+    }
+  }
 }

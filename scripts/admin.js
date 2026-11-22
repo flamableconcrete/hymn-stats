@@ -1,14 +1,18 @@
 import { applicationDefault, initializeApp, getApps } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Firestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { cliAccessToken, cliGoogleAuth } from './cli-credential.js';
+let localCliDatabase;
 export function services() {
   const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT;
   if (!projectId) throw new Error('Set FIREBASE_PROJECT_ID before accessing cloud data.');
-  if (!getApps().length) initializeApp({ projectId, ...(process.env.FIRESTORE_EMULATOR_HOST ? {} : { credential: applicationDefault() }) });
-  return { db: getFirestore(), auth: getAuth(), projectId };
+  if (!getApps().length) initializeApp({ projectId, ...(process.env.FIRESTORE_EMULATOR_HOST ? {} : { credential: process.env.FIREBASE_USE_CLI_LOGIN === '1' ? { getAccessToken: cliAccessToken } : applicationDefault() }) });
+  const useCli = process.env.FIREBASE_USE_CLI_LOGIN === '1' && !process.env.FIRESTORE_EMULATOR_HOST;
+  const db = useCli ? localCliDatabase ||= new Firestore({ projectId, auth: cliGoogleAuth(projectId), preferRest: true }) : getFirestore();
+  return { db, auth: getAuth(), projectId };
 }
 export async function readJson(path) { return JSON.parse(await readFile(path, 'utf8')); }
 export async function writeJson(path, data) { await mkdir(dirname(path), { recursive: true }); await writeFile(path, `${JSON.stringify(data, null, 2)}\n`); }
