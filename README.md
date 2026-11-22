@@ -123,6 +123,8 @@ Set `FIREBASE_PROJECT_ID` and credentials for that target first. Restore preserv
 
 `npm test` covers import idempotency, extra music columns, medleys, missing values, date preservation, offline conflict merging, beat conversion, observer weighting, public privacy projection, and frequency semantics.
 
+The lockfile includes scoped security overrides for transitive gRPC, glob, UUID, and OpenTelemetry dependencies. Retest the emulator and recovery suite when updating or removing these overrides. CI also checks production dependencies for high-severity advisories.
+
 With Java 21 installed, `npm run test:rules` launches Firestore/Auth emulators and verifies actual access rules, immutable audit writes, role enforcement, and a complete backup/restore round trip. CI installs Java and Node 24 automatically. Browser verification should include narrow-screen layouts, reload/closure with drafts, offline startup after initial caching, and multiple-device conflicts before production use.
 
 The original Python files are retained as historical prototypes and are not used by the new application.
