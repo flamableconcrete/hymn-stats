@@ -41,6 +41,9 @@ test('uninvited and revoked accounts cannot grant themselves membership', async 
 test('an email invitation grants only its specified role to its verified account', async () => { await setDoc(doc(dbFor('admin'), 'invitations', 'new@example.com'), { role: 'contributor' }); const db = dbFor('new'); await assertFails(setDoc(doc(db, 'members', 'new'), { role: 'admin', email: 'new@example.com' })); await assertSucceeds(setDoc(doc(db, 'members', 'new'), { role: 'contributor', email: 'new@example.com' })); });
 test('full backup restores private records, revision timestamps, roles, and authentication IDs into an empty target', async () => {
   await create(dbFor('owner'));
+  await env.withSecurityRulesDisabled(async ctx => {
+    await Promise.all(Array.from({ length: 12 }, (_, n) => setDoc(doc(ctx.firestore(), 'recoveryFixtures', `missing-${n}`, 'nested', 'entry'), { n })));
+  });
   const auth = adminAuth(adminApp({ projectId }, 'recovery-test'));
   await auth.createUser({ uid: 'owner', email: 'owner@example.com', emailVerified: true });
   await mkdir('var', { recursive: true });
@@ -51,5 +54,8 @@ test('full backup restores private records, revision timestamps, roles, and auth
   assert.equal((await getDoc(doc(dbFor('owner'), 'privateObservations', 'report'))).data().chorister, 'PRIVATE-NAME');
   assert.equal((await getDoc(doc(dbFor('owner'), 'history', 'report', 'entries', 'change-1'))).data().committedAt.toMillis() > 0, true);
   assert.equal((await auth.getUser('owner')).email, 'owner@example.com');
+  await env.withSecurityRulesDisabled(async ctx => {
+    for (let n = 0; n < 12; n++) assert.equal((await getDoc(doc(ctx.firestore(), 'recoveryFixtures', `missing-${n}`, 'nested', 'entry'))).data().n, n);
+  });
   await auth.deleteUser('owner');
 });
