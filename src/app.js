@@ -94,7 +94,7 @@ async function newMeeting() {
 function dialog(content, className = '') {
   document.querySelector('dialog')?.remove();
   const d = document.createElement('dialog'); d.className = className; d.innerHTML = `<button class="dialog-close icon-button" data-action="close-dialog" aria-label="Close dialog">×</button>${content}`; document.body.append(d); d.showModal();
-  d.addEventListener('close', () => { activeTap = null; d.remove(); }); return d;
+  d.addEventListener('close', () => { if (document.querySelector('dialog') === d) activeTap = null; d.remove(); }); return d;
 }
 function tapDialog(id) {
   const item = active().value.items.find(i => i.id === id); activeTap = { id, times: [] };
