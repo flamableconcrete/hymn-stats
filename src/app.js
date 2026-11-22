@@ -34,7 +34,7 @@ function shell(content, tab) {
 function trend(years, label = 'Recorded meetings by year') {
   if (!years.length) return '';
   const max = Math.max(...years.map(([, n]) => n)), width = Math.max(300, years.length * 44);
-  return `<div class="trend"><svg viewBox="0 0 ${width} 146" role="img" aria-label="${esc(label)}"><title>${esc(label)}</title>${years.map(([year, n], index) => { const x = 12 + index * ((width - 24) / years.length), w = Math.min(30, (width - 24) / years.length - 8), h = n / max * 95; return `<g><title>${year}: ${n} recorded meetings</title><rect x="${x}" y="${112 - h}" width="${w}" height="${h}" rx="3"/><text x="${x + w / 2}" y="${106 - h}" text-anchor="middle">${n}</text><text x="${x + w / 2}" y="134" text-anchor="middle">${year}</text></g>`; }).join('')}</svg></div>`;
+  return `<div class="trend"><svg width="${width}" height="146" viewBox="0 0 ${width} 146" role="img" aria-label="${esc(label)}"><title>${esc(label)}</title>${years.map(([year, n], index) => { const x = 12 + index * ((width - 24) / years.length), w = Math.min(30, (width - 24) / years.length - 8), h = n / max * 95; return `<g><title>${year}: ${n} recorded meetings</title><rect x="${x}" y="${112 - h}" width="${w}" height="${h}" rx="3"/><text x="${x + w / 2}" y="${106 - h}" text-anchor="middle">${n}</text><text x="${x + w / 2}" y="134" text-anchor="middle">${year}</text></g>`; }).join('')}</svg></div>`;
 }
 function explorer() {
   const stats = statistics(snapshot.meetings, catalog, state.filters);
