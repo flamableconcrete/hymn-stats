@@ -2,7 +2,8 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { services, readJson, arg } from './admin.js';
 const { db, auth, projectId } = services();
 if (arg('confirm-project') !== projectId) throw new Error('Pass --confirm-project with the exact target FIREBASE_PROJECT_ID. Restore is allowed only into an empty target.');
-for (const collection of await db.listCollections()) if (!(await collection.limit(1).get()).empty) throw new Error('Target Firestore database is not empty. Use a new empty project to avoid overwriting records.');
+async function hasDocuments(collection) { for (const ref of await collection.listDocuments()) { if ((await ref.get()).exists) return true; for (const child of await ref.listCollections()) if (await hasDocuments(child)) return true; } return false; }
+for (const collection of await db.listCollections()) if (await hasDocuments(collection)) throw new Error('Target Firestore database is not empty. Use a new empty project to avoid overwriting records.');
 if ((await auth.listUsers(1)).users.length) throw new Error('Target Firebase Authentication is not empty. Restore into a new empty project.');
 const backup = await readJson(arg('file', 'var/backup.json'));
 if (backup.schemaVersion !== 1 || !Array.isArray(backup.documents) || !Array.isArray(backup.users)) throw new Error('Unsupported backup format.');

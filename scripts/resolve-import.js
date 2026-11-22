@@ -9,12 +9,13 @@ await db.runTransaction(async tx => {
   if (r.data().version !== issue.expectedVersion) throw new Error('The report changed again. Rerun the import before resolving this issue.');
   const eventRef = db.doc(`events/${r.data().eventId}`), event = await tx.get(eventRef);
   const plan = planImport(baseline.data(), { value: r.data(), privateData: p.data() || {} }, issue.incoming, issue.incomingPrivate, issue.sourceHash);
-  if (choice === 'spreadsheet') {
+  {
     // Keep non-conflicting website changes. Choose source values only at conflicting fields.
     const { resolveConflicts } = await import('../src/domain.js');
     const merged = plan.merged || { value: { ...issue.incoming, eventId: r.data().eventId, ownerId: r.data().ownerId }, conflicts: [] };
     const privateMerged = plan.privateMerged || { value: issue.incomingPrivate, conflicts: [] };
-    const value = resolveConflicts(merged, Object.fromEntries(merged.conflicts.map(c => [c.path, 'remote']))), priv = resolveConflicts(privateMerged, Object.fromEntries(privateMerged.conflicts.map(c => [c.path, 'remote'])));
+    const chosen = choice === 'spreadsheet' ? 'remote' : 'local';
+    const value = resolveConflicts(merged, Object.fromEntries(merged.conflicts.map(c => [c.path, chosen]))), priv = resolveConflicts(privateMerged, Object.fromEntries(privateMerged.conflicts.map(c => [c.path, chosen])));
     await commitObservation(tx, db, value, priv, r.data(), p.data() || null, 'system:import-review');
     if (event.exists && event.data().selectedObservationId === id) tx.update(eventRef, { date: value.date, congregation: value.congregation, meetingType: value.meetingType });
   }
