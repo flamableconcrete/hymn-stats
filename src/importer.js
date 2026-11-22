@@ -4,6 +4,7 @@ export { planImport } from './import-plan.js';
 export const ID_HEADER = 'Hymn Stats ID';
 export function hash(value) { return createHash('sha256').update(JSON.stringify(value)).digest('hex'); }
 export function columnLetter(index) { let s = ''; for (let n = index + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; }
+export function sourceCells(row, idColumn) { const values = Array.from(row, x => x ?? null).filter((_, index) => index !== idColumn); while (values.length && (values.at(-1) === '' || values.at(-1) === null)) values.pop(); return values; }
 export function sheetDate(value) {
   if (typeof value === 'number') return new Date(Date.UTC(1899, 11, 30) + Math.floor(value) * 86400000).toISOString().slice(0, 10);
   const s = normalize(value); if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);

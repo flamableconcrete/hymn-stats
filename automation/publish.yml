@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
+    if: vars.FIREBASE_PROJECT_ID != '' && vars.GCP_SERVICE_ACCOUNT != ''
     runs-on: ubuntu-latest
     env:
       FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}

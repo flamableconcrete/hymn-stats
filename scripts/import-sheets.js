@@ -1,5 +1,5 @@
 import { GoogleAuth } from 'google-auth-library';
-import { ensureSourceIds, columnLetter, hash, parseSourceRow, planImport } from '../src/importer.js';
+import { ensureSourceIds, columnLetter, hash, parseSourceRow, planImport, sourceCells } from '../src/importer.js';
 import { arg, flag, readJson, writeJson, services, commitObservation } from './admin.js';
 
 const dryRun = !flag('apply'), spreadsheetId = process.env.SOURCE_SPREADSHEET_ID;
@@ -43,8 +43,7 @@ for (const s of normalized) {
   const sourceKey = `${spreadsheetId || 'snapshot'}:${s.sheetId}`;
   for (let n = 1; n < s.prepared.values.length; n++) {
     const full = s.prepared.values[n], id = full[s.prepared.idColumn]; if (!id) continue;
-    seen.add(id); const row = Array.from(full.slice(0, s.prepared.idColumn), x => x ?? null);
-    while (row.at(-1) === null || row.at(-1) === '' || row.at(-1) === undefined && row.length) row.pop();
+    seen.add(id); const row = sourceCells(full, s.prepared.idColumn);
     const parsed = parseSourceRow(row, { id, kind: s.kind, ownerId, catalog, sourceKey, rowNumber: n + 1 });
     if (dryRun) { results.push({ id, action: 'preview', ...parsed }); continue; }
     const sourceHash = hash(row);
