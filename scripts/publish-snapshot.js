@@ -1,0 +1,11 @@
+import { collectionRows, services, readJson, writeJson, arg } from './admin.js';
+import { projectPublic, csv } from '../src/public-data.js';
+import { statistics } from '../src/domain.js';
+const { db } = services();
+const [events, observations, catalog] = await Promise.all([collectionRows(db, 'events'), collectionRows(db, 'observations'), readJson('public/data/catalog.json')]);
+const snapshot = projectPublic(events, observations, catalog);
+if (!snapshot.meetings.length && !process.argv.includes('--allow-empty')) throw new Error('Refusing to replace public history with an empty snapshot. Review the source or pass --allow-empty deliberately.');
+await writeJson(arg('out', 'public/data/snapshot.json'), snapshot);
+const stats = statistics(snapshot.meetings, catalog);
+await import('node:fs/promises').then(fs => fs.writeFile('public/data/hymn-stats.csv', csv(stats.songs.map(s => ({ title: s.label, collection: s.collection, number: s.number, meetings: s.meetings, performances: s.performances, lastRecorded: s.lastRecorded })), ['title', 'collection', 'number', 'meetings', 'performances', 'lastRecorded'])));
+console.log(JSON.stringify({ publicMeetings: snapshot.meetings.length, warnings: snapshot.warnings.length, generatedAt: snapshot.generatedAt }));

@@ -1,2 +1,16 @@
+node_modules/
 hymn-stats-keyfile.json
 db_creds.json
+dist/
+var/
+.env*
+!.env.example
+*.log
+.firebase/
+*-service-account.json
+*credentials*.json
+.private/
+public/config.json
+public/data/snapshot.json
+public/data/hymn-stats.csv
+!public/data/snapshot.example.json

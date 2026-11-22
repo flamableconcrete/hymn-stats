@@ -1,0 +1,5 @@
+{
+  "name": "Hymn Stats", "short_name": "Hymn Stats", "start_url": "./", "scope": "./",
+  "display": "standalone", "background_color": "#f5f8fb", "theme_color": "#16364a",
+  "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

@@ -1,0 +1,59 @@
+name: Deploy website
+run-name: Publish hymn site ${{ inputs.request_id || github.run_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      use_prebuilt:
+        description: Deploy the already-built public output from gh-pages
+        type: boolean
+        default: false
+      request_id:
+        description: Automation request identifier
+        type: string
+        required: false
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        if: inputs.use_prebuilt != true
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+        if: inputs.use_prebuilt != true
+      - name: Configure public application
+        if: inputs.use_prebuilt != true
+        env:
+          PUBLIC_APP_CONFIG: ${{ vars.PUBLIC_APP_CONFIG }}
+        run: node scripts/build-config.js
+      - run: npm test
+        if: inputs.use_prebuilt != true
+      - run: npm run build
+        if: inputs.use_prebuilt != true
+      - uses: actions/checkout@v4
+        if: inputs.use_prebuilt == true
+        with:
+          ref: gh-pages
+          path: dist
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
