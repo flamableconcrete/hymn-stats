@@ -1,0 +1,20 @@
+{
+  "name": "hymn-stats",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.js",
+    "test:rules": "firebase emulators:exec --only firestore,auth --project demo-hymn-stats \"node --test tests/firestore.rules.spec.js\"",
+    "import:sheets": "node scripts/import-sheets.js",
+    "publish:snapshot": "node scripts/publish-snapshot.js",
+    "backup": "node scripts/backup.js",
+    "restore": "node scripts/restore.js"
+  },
+  "engines": { "node": ">=22 <27" },
+  "dependencies": { "firebase": "13.4.0", "firebase-admin": "14.5.1", "google-auth-library": "11.3.4" },
+  "devDependencies": { "vite": "8.3.8", "@firebase/rules-unit-testing": "6.0.0", "firebase-tools": "15.37.0" }
+}

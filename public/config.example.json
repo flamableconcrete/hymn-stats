@@ -1,0 +1,4 @@
+{
+  "firebase": { "apiKey": "", "authDomain": "", "projectId": "", "appId": "" },
+  "github": { "owner": "flamableconcrete", "repo": "hymn-stats-automation", "workflow": "publish.yml", "ref": "main" }
+}

@@ -1,0 +1,96 @@
+# Install this workflow as .github/workflows/publish.yml in the PRIVATE automation repository.
+name: Back up and publish Hymn Stats
+on:
+  schedule:
+    - cron: '23 10 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  id-token: write
+concurrency:
+  group: hymn-stats-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      SOURCE_SPREADSHEET_ID: ${{ vars.SOURCE_SPREADSHEET_ID }}
+      IMPORT_OWNER_UID: ${{ vars.IMPORT_OWNER_UID }}
+      IMPORT_MAPPINGS_JSON: ${{ vars.IMPORT_MAPPINGS_JSON }}
+      PUBLIC_APP_CONFIG: ${{ vars.PUBLIC_APP_CONFIG }}
+    steps:
+      - name: Refuse public backup repository
+        run: test '${{ github.event.repository.private }}' = 'true'
+      - uses: actions/checkout@v4
+        with:
+          path: private-backups
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.SOURCE_REPOSITORY }}
+          ref: ${{ vars.SOURCE_REF || 'master' }}
+          token: ${{ secrets.SOURCE_PUBLISH_TOKEN }}
+          path: application
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: application/package-lock.json
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - run: npm ci --no-audit --no-fund
+        working-directory: application
+      - name: Import source corrections during transition
+        if: vars.IMPORT_ENABLED == 'true'
+        run: npm run import:sheets -- --apply
+        working-directory: application
+      - name: Export full private backup
+        run: npm run backup -- --out ../private-backups/backups/latest.json
+        working-directory: application
+      - name: Save daily backup privately
+        working-directory: private-backups
+        run: |
+          cp backups/latest.json "backups/$(date -u +%F).json"
+          git config user.name 'Hymn Stats backup'
+          git config user.email 'hymn-stats@users.noreply.github.com'
+          git add backups
+          if ! git diff --cached --quiet; then
+            git commit -m 'Back up hymn records'
+            git push
+          fi
+      - name: Generate explicitly public data
+        run: npm run publish:snapshot
+        working-directory: application
+      - run: node scripts/build-config.js
+        working-directory: application
+      - run: npm test
+        working-directory: application
+      - run: npm run build
+        working-directory: application
+      - name: Publish static output to public Pages branch
+        working-directory: application
+        run: |
+          git config user.name 'Hymn Stats publisher'
+          git config user.email 'hymn-stats@users.noreply.github.com'
+          git add -f dist
+          git commit -m 'Build public hymn history'
+          git subtree split --prefix dist -b publish-output
+          git push origin publish-output:gh-pages --force
+      - name: Deploy Pages and wait for publication
+        working-directory: application
+        env:
+          GH_TOKEN: ${{ secrets.SOURCE_PUBLISH_TOKEN }}
+          TARGET_REPOSITORY: ${{ vars.SOURCE_REPOSITORY }}
+          TARGET_REF: ${{ vars.SOURCE_REF || 'master' }}
+          REQUEST_ID: ${{ github.run_id }}
+        run: |
+          gh workflow run pages.yml --repo "$TARGET_REPOSITORY" --ref "$TARGET_REF" -f use_prebuilt=true -f request_id="$REQUEST_ID"
+          for attempt in $(seq 1 30); do
+            run_id=$(gh run list --repo "$TARGET_REPOSITORY" --workflow pages.yml --event workflow_dispatch --limit 30 --json databaseId,displayTitle --jq ".[] | select(.displayTitle == \"Publish hymn site $REQUEST_ID\") | .databaseId" | head -n 1)
+            if [ -n "$run_id" ]; then break; fi
+            sleep 5
+          done
+          test -n "$run_id"
+          gh run watch "$run_id" --repo "$TARGET_REPOSITORY" --exit-status
